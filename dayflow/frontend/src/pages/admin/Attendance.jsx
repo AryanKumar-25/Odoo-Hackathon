@@ -1,28 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, TextField, MenuItem, Button
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
+  Paper, CircularProgress, TextField, IconButton, Chip 
 } from '@mui/material';
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import SearchIcon from '@mui/icons-material/Search';
 import { getAttendance } from '../../api/admin';
 
+const STANDARD_WORK_HOURS = 8; // Assumed standard workday length
+
 const Attendance = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    date: '',
-    employeeId: '',
-    status: ''
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Helpers to calculate today boundary
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
 
   const fetchAttendance = async () => {
     setLoading(true);
     try {
-      // Clean empty filters
-      const params = {};
-      if (filters.date) params.date = filters.date;
-      if (filters.employeeId) params.employeeId = filters.employeeId;
-      if (filters.status) params.status = filters.status;
-
-      const res = await getAttendance(params);
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const res = await getAttendance({ date: dateStr });
       setRecords(res.data);
     } catch (error) {
       console.error('Error fetching attendance', error);
@@ -33,62 +35,72 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchAttendance();
-  }, []); // Initial load
+  }, [currentDate]);
 
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+  const handlePrevDay = () => {
+    const prev = new Date(currentDate);
+    prev.setDate(prev.getDate() - 1);
+    setCurrentDate(prev);
   };
 
-  const handleSearch = () => {
-    fetchAttendance();
+  const handleNextDay = () => {
+    const next = new Date(currentDate);
+    next.setDate(next.getDate() + 1);
+    
+    // Disable navigating into the future
+    const endOfToday = new Date();
+    endOfToday.setUTCHours(23, 59, 59, 999);
+    if (next <= endOfToday) {
+      setCurrentDate(next);
+    }
   };
 
-  const handleClear = () => {
-    setFilters({ date: '', employeeId: '', status: '' });
-    // Note: React state update is async, so we pass empty object to fetch
-    getAttendance({}).then(res => setRecords(res.data)).catch(console.error);
+  const isNextDayDisabled = () => {
+    const next = new Date(currentDate);
+    next.setDate(next.getDate() + 1);
+    
+    const endOfToday = new Date();
+    endOfToday.setUTCHours(23, 59, 59, 999);
+    return next > endOfToday;
   };
+
+  // Client-side filtering based on employee name or ID
+  const filteredRecords = records.filter(rec => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (rec.name && rec.name.toLowerCase().includes(term)) ||
+      (rec.employeeId && rec.employeeId.toLowerCase().includes(term))
+    );
+  });
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Attendance Oversight</Typography>
-      
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <TextField
-          type="date"
-          name="date"
-          label="Date"
-          InputLabelProps={{ shrink: true }}
-          value={filters.date}
-          onChange={handleFilterChange}
-          size="small"
-        />
-        <TextField
-          name="employeeId"
-          label="Employee ID"
-          value={filters.employeeId}
-          onChange={handleFilterChange}
-          size="small"
-        />
-        <TextField
-          select
-          name="status"
-          label="Status"
-          value={filters.status}
-          onChange={handleFilterChange}
-          size="small"
-          sx={{ minWidth: 120 }}
-        >
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="present">Present</MenuItem>
-          <MenuItem value="absent">Absent</MenuItem>
-          <MenuItem value="half-day">Half-Day</MenuItem>
-          <MenuItem value="leave">Leave</MenuItem>
-        </TextField>
-        <Button variant="contained" onClick={handleSearch}>Search</Button>
-        <Button variant="outlined" onClick={handleClear}>Clear</Button>
-      </Paper>
+      {/* Sub-header row */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold">Attendance</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'background.paper', px: 1, borderRadius: 1, border: '1px solid #ccc' }}>
+          <SearchIcon color="action" />
+          <TextField 
+            variant="standard"
+            placeholder="Search by name or ID"
+            InputProps={{ disableUnderline: true }}
+            sx={{ ml: 1, width: 250 }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </Box>
+      </Box>
+
+      {/* Controls row */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <IconButton onClick={handlePrevDay}><ArrowBackIosIcon fontSize="small" /></IconButton>
+        <Typography variant="h6" sx={{ mx: 2, minWidth: 200, textAlign: 'center' }}>
+          {currentDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </Typography>
+        <IconButton onClick={handleNextDay} disabled={isNextDayDisabled()}><ArrowForwardIosIcon fontSize="small" /></IconButton>
+        <Chip label="Day View" color="primary" variant="outlined" sx={{ ml: 3 }} />
+      </Box>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
@@ -97,27 +109,92 @@ const Attendance = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Employee ID</TableCell>
+                <TableCell>Emp ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Status</TableCell>
                 <TableCell>Check In</TableCell>
                 <TableCell>Check Out</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell align="right">Work Hours</TableCell>
+                <TableCell align="right">Extra hours</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {records.length > 0 ? (
-                records.map((rec) => (
-                  <TableRow key={rec.id}>
-                    <TableCell>{new Date(rec.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{rec.employeeId}</TableCell>
-                    <TableCell>{rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString() : '-'}</TableCell>
-                    <TableCell>{rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString() : '-'}</TableCell>
-                    <TableCell>{rec.status}</TableCell>
-                  </TableRow>
-                ))
+              {filteredRecords.length > 0 ? (
+                filteredRecords.map((rec) => {
+                  
+                  // Compute Status
+                  let displayStatus = rec.status;
+                  
+                  // Logic per spec:
+                  // 1. "no_record": zero attendance data (weekends, future, past before start).
+                  // 2. "absent": normal working day without check-in.
+                  // Since we are strictly relying on what the backend gives us, if it's null, we calculate it here.
+                  
+                  // If no record exists...
+                  if (!displayStatus) {
+                    const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                    
+                    // Note for Payroll module: Ensure leave module injects 'leave' or 'paid_leave' into the DB for these days.
+                    // For now, if no record and it's a weekday, it's 'absent'. If weekend, 'no_record'.
+                    if (isWeekend) {
+                      displayStatus = 'no_record';
+                    } else if (currentDate <= today) {
+                      displayStatus = 'absent';
+                    } else {
+                      displayStatus = 'no_record'; // Shouldn't hit this due to future date block, but safe fallback
+                    }
+                  }
+
+                  let workHours = 0;
+                  let extraHours = 0;
+                  let workHoursDisplay = '-';
+                  let extraHoursDisplay = '-';
+
+                  if (rec.checkIn) {
+                    if (rec.checkOut) {
+                      const inTime = new Date(rec.checkIn);
+                      const outTime = new Date(rec.checkOut);
+                      const diffMs = outTime - inTime;
+                      workHours = diffMs / (1000 * 60 * 60);
+                      
+                      extraHours = Math.max(0, workHours - STANDARD_WORK_HOURS);
+                      
+                      workHoursDisplay = workHours.toFixed(2);
+                      extraHoursDisplay = extraHours.toFixed(2);
+                    } else {
+                      workHoursDisplay = 'In progress';
+                    }
+                  }
+
+                  return (
+                    <TableRow key={rec.employeeId}>
+                      <TableCell>{rec.employeeId}</TableCell>
+                      <TableCell>{rec.name}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={displayStatus === 'no_record' ? 'No Record' : displayStatus} 
+                          size="small" 
+                          color={
+                            displayStatus === 'present' ? 'success' : 
+                            displayStatus === 'absent' ? 'error' : 
+                            displayStatus === 'leave' ? 'warning' : 'default'
+                          } 
+                        />
+                      </TableCell>
+                      <TableCell>{(displayStatus === 'absent' || displayStatus === 'leave' || displayStatus === 'no_record' || !rec.checkIn) ? '-' : new Date(rec.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
+                      <TableCell>{(displayStatus === 'absent' || displayStatus === 'leave' || displayStatus === 'no_record' || !rec.checkOut) ? '-' : new Date(rec.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</TableCell>
+                      <TableCell align="right">{workHoursDisplay}</TableCell>
+                      <TableCell align="right">{extraHoursDisplay}</TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">No attendance records found</TableCell>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body1" sx={{ py: 3 }}>
+                      No employees found for this date.
+                    </Typography>
+                  </TableCell>
                 </TableRow>
               )}
             </TableBody>

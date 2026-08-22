@@ -69,33 +69,57 @@ router.patch('/employees/:id', async (req, res) => {
 
 // --- ATTENDANCE ---
 
-// List all attendance records with optional filtering
+// List all attendance records for a specific day, joined with all employees
 router.get('/attendance', async (req, res) => {
   try {
-    const { employeeId, date, status } = req.query;
+    const { date } = req.query; // e.g. YYYY-MM-DD
     
-    // Build filter dynamically
-    const where = {};
-    if (employeeId) where.employeeId = employeeId;
-    if (status) where.status = status;
-    if (date) {
-      // Assuming date is passed as YYYY-MM-DD
-      const startOfDay = new Date(date);
-      startOfDay.setUTCHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setUTCHours(23, 59, 59, 999);
-      where.date = {
-        gte: startOfDay,
-        lte: endOfDay,
-      };
-    }
+    // Default to today if no date provided
+    const targetDate = date ? new Date(date) : new Date();
+    
+    const startOfDay = new Date(targetDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
-    const records = await prisma.attendance.findMany({
-      where,
-      orderBy: { date: 'desc' },
+    // 1. Fetch all employees
+    const employees = await prisma.user.findMany({
+      where: { role: 'employee' },
+      select: { employeeId: true, name: true }
     });
-    res.json(records);
+
+    // 2. Fetch all attendance records for that day
+    const records = await prisma.attendance.findMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        }
+      }
+    });
+
+    // Map records by employeeId for O(1) lookup
+    const recordMap = {};
+    records.forEach(r => {
+      recordMap[r.employeeId] = r;
+    });
+
+    // 3. Join the data
+    const joinedData = employees.map(emp => {
+      const record = recordMap[emp.employeeId];
+      return {
+        employeeId: emp.employeeId,
+        name: emp.name,
+        date: record ? record.date : null,
+        checkIn: record ? record.checkIn : null,
+        checkOut: record ? record.checkOut : null,
+        status: record ? record.status : null // Can be null if no record (e.g. weekend/no-show)
+      };
+    });
+
+    res.json(joinedData);
   } catch (error) {
+    console.error('Error fetching joined attendance:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
