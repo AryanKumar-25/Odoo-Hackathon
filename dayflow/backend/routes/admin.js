@@ -66,6 +66,14 @@ router.post('/employees', async (req, res) => {
       }
     });
 
+    // Create default leave balance for the new employee
+    await prisma.leaveBalance.create({
+      data: {
+        employeeId: newEmployeeId,
+        companyId: adminUser.companyId
+      }
+    });
+
     res.status(201).json({
       message: 'Employee created successfully',
       user: {
@@ -214,18 +222,49 @@ router.get('/attendance', async (req, res) => {
 // Get all leave requests
 router.get('/leave', async (req, res) => {
   try {
+    const { status } = req.query;
+
     const employees = await prisma.user.findMany({
       where: { role: 'employee', companyId: req.user.companyId },
-      select: { employeeId: true }
+      select: { employeeId: true, name: true }
     });
+    
     const myEmployeeIds = employees.map(e => e.employeeId);
+    const empMap = {};
+    employees.forEach(e => { empMap[e.employeeId] = e.name; });
+
+    const whereClause = { employeeId: { in: myEmployeeIds } };
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      whereClause.status = status;
+    }
 
     const leaves = await prisma.leaveRequest.findMany({
-      where: { employeeId: { in: myEmployeeIds } },
-      orderBy: { startDate: 'desc' },
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
     });
-    res.json(leaves);
+
+    // Fetch leave balances for context
+    const balances = await prisma.leaveBalance.findMany({
+      where: { employeeId: { in: myEmployeeIds } }
+    });
+    const balanceMap = {};
+    balances.forEach(b => { balanceMap[b.employeeId] = b; });
+
+    // Sort in memory: pending first, then by createdAt (already descending from DB)
+    // Map to include employee name and balance
+    const enrichedLeaves = leaves.map(l => ({
+      ...l,
+      employeeName: empMap[l.employeeId] || 'Unknown Employee',
+      balance: balanceMap[l.employeeId] || null
+    })).sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return 0;
+    });
+
+    res.json(enrichedLeaves);
   } catch (error) {
+    console.error('Error fetching admin leaves:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -252,6 +291,43 @@ router.patch('/leave/:id', async (req, res) => {
     });
     if (!targetLeave) return res.status(404).json({ error: 'Leave request not found' });
 
+    // Handle Balance updates if approving
+    if (status === 'approved' && targetLeave.status !== 'approved') {
+      const days = Math.ceil((new Date(targetLeave.endDate) - new Date(targetLeave.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+      
+      const balance = await prisma.leaveBalance.findUnique({
+        where: { employeeId: targetLeave.employeeId }
+      });
+      
+      if (!balance) return res.status(400).json({ error: 'Leave balance not found for employee' });
+
+      if (targetLeave.type === 'paid' && balance.paidDays < days) {
+        return res.status(400).json({ error: 'Insufficient paid leave balance' });
+      }
+      if (targetLeave.type === 'sick' && balance.sickDays < days) {
+        return res.status(400).json({ error: 'Insufficient sick leave balance' });
+      }
+
+      const balanceUpdateData = {};
+      if (targetLeave.type === 'paid') balanceUpdateData.paidDays = { decrement: days };
+      if (targetLeave.type === 'sick') balanceUpdateData.sickDays = { decrement: days };
+      if (targetLeave.type === 'unpaid') balanceUpdateData.unpaidUsed = { increment: days };
+
+      // Use transaction to ensure both succeed
+      const [updated] = await prisma.$transaction([
+        prisma.leaveRequest.update({
+          where: { id: parseInt(id) },
+          data: { status, adminComment },
+        }),
+        prisma.leaveBalance.update({
+          where: { employeeId: targetLeave.employeeId },
+          data: balanceUpdateData
+        })
+      ]);
+      return res.json(updated);
+    }
+
+    // Normal update without balance change (e.g. rejection)
     const updated = await prisma.leaveRequest.update({
       where: { id: parseInt(id) },
       data: { status, adminComment },

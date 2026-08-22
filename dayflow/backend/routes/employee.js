@@ -132,4 +132,116 @@ router.post('/attendance/checkout', async (req, res) => {
   }
 });
 
+// --- LEAVE ---
+
+// POST /leave/apply
+router.post('/leave/apply', async (req, res) => {
+  try {
+    const { type, startDate, endDate, remarks } = req.body;
+    const { employeeId, companyId } = req.user;
+
+    if (!employeeId) return res.status(400).json({ error: 'Missing employee ID' });
+    if (!['paid', 'sick', 'unpaid'].includes(type)) return res.status(400).json({ error: 'Invalid leave type' });
+    if (!startDate || !endDate) return res.status(400).json({ error: 'Start and end dates are required' });
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setUTCHours(0, 0, 0, 0);
+    end.setUTCHours(23, 59, 59, 999);
+
+    const now = new Date();
+    now.setUTCHours(0, 0, 0, 0); // Start of today
+
+    if (start < now) return res.status(400).json({ error: 'Start date cannot be in the past' });
+    if (end < start) return res.status(400).json({ error: 'End date cannot be before start date' });
+
+    // Overlap validation
+    // Find any existing pending or approved requests for this employee
+    const overlapping = await prisma.leaveRequest.findFirst({
+      where: {
+        employeeId,
+        status: { in: ['pending', 'approved'] },
+        // Two date ranges overlap if: (StartA <= EndB) and (EndA >= StartB)
+        // new request = A, existing request = B
+        startDate: { lte: end },
+        endDate: { gte: start }
+      }
+    });
+
+    if (overlapping) {
+      return res.status(400).json({ error: 'Leave request overlaps with an existing pending or approved request' });
+    }
+
+    // Balance check
+    const requestedDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    
+    if (type !== 'unpaid') {
+      const balance = await prisma.leaveBalance.findUnique({
+        where: { employeeId }
+      });
+      if (!balance) return res.status(400).json({ error: 'Leave balance not found' });
+      
+      if (type === 'paid' && requestedDays > balance.paidDays) {
+        return res.status(400).json({ error: `You requested ${requestedDays} days, but only have ${balance.paidDays} Paid days available.` });
+      }
+      if (type === 'sick' && requestedDays > balance.sickDays) {
+        return res.status(400).json({ error: `You requested ${requestedDays} days, but only have ${balance.sickDays} Sick days available.` });
+      }
+    }
+
+    const leave = await prisma.leaveRequest.create({
+      data: {
+        employeeId,
+        companyId,
+        type,
+        startDate: start,
+        endDate: end,
+        remarks,
+        status: 'pending'
+      }
+    });
+
+    res.status(201).json(leave);
+  } catch (error) {
+    console.error('Error applying for leave:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /leave/balance
+router.get('/leave/balance', async (req, res) => {
+  try {
+    const { employeeId } = req.user;
+    if (!employeeId) return res.status(400).json({ error: 'Missing employee ID' });
+
+    const balance = await prisma.leaveBalance.findUnique({
+      where: { employeeId }
+    });
+
+    if (!balance) return res.status(404).json({ error: 'Balance not found' });
+    res.json(balance);
+  } catch (error) {
+    console.error('Error fetching leave balance:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /leave/me
+router.get('/leave/me', async (req, res) => {
+  try {
+    const { employeeId } = req.user;
+    if (!employeeId) return res.status(400).json({ error: 'Missing employee ID' });
+
+    const leaves = await prisma.leaveRequest.findMany({
+      where: { employeeId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(leaves);
+  } catch (error) {
+    console.error('Error fetching leaves:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

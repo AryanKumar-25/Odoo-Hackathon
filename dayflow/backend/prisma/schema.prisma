@@ -42,12 +42,14 @@ model Attendance {
 model LeaveRequest {
   id           Int      @id @default(autoincrement())
   employeeId   String
+  companyId    Int?
   type         String
   startDate    DateTime
   endDate      DateTime
   remarks      String?
   status       String   @default("pending")
   adminComment String?
+  createdAt    DateTime @default(now())
 }
 
 model Payroll {
@@ -58,4 +60,15 @@ model Payroll {
   deductions  Float    @default(0)
   netSalary   Float
   lastUpdated DateTime @updatedAt
+}
+
+model LeaveBalance {
+  id         Int      @id @default(autoincrement())
+  employeeId String   @unique
+  companyId  Int
+  paidDays   Int      @default(24)
+  sickDays   Int      @default(7)
+  unpaidUsed Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
