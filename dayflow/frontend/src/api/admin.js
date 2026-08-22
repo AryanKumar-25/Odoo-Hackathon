@@ -10,7 +10,7 @@ export const createEmployee = (data) => apiClient.post('/admin/employees', data)
 export const getAttendance = (params) => apiClient.get('/admin/attendance', { params });
 
 // Leaves
-export const getLeaves = () => apiClient.get('/admin/leave');
+export const getLeaves = (params) => apiClient.get('/admin/leave', { params });
 export const updateLeaveStatus = (id, status, adminComment) => apiClient.patch(`/admin/leave/${id}`, { status, adminComment });
 
 // Payroll

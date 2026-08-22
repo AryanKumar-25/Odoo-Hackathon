@@ -29,7 +29,7 @@ const Layout = () => {
   const { logout } = useAuth();
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
+    { text: 'My Profile', icon: <DashboardIcon />, path: '/admin/profile' },
     { text: 'Employees', icon: <PeopleIcon />, path: '/admin/employees' },
     { text: 'Attendance', icon: <AccessTimeIcon />, path: '/admin/attendance' },
     { text: 'Leave Requests', icon: <EventNoteIcon />, path: '/admin/leaves' },

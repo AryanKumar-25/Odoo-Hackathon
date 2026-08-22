@@ -10,12 +10,16 @@ app.use(express.json());
 // Import routes (these can be filled in by teammates)
 const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employee');
+const employeesRoutes = require('./routes/employees');
 const adminRoutes = require('./routes/admin');
+const payrollRoutes = require('./routes/payroll');
 
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/employee', employeeRoutes);
+app.use('/api/employees', employeesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -72,3 +72,69 @@ model LeaveBalance {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+model EmployeeProfile {
+  id                   Int      @id @default(autoincrement())
+  employeeId           String   @unique
+  companyId            Int
+  
+  // Organization Info
+  department           String?
+  manager              String?
+  
+  // Resume Info
+  about                String?
+  hobbies              String?
+  skills               Json?    @default("[]")
+  certifications       Json?    @default("[]")
+  
+  // Private Info
+  dob                  DateTime?
+  address              String?
+  nationality          String?
+  personalEmail        String?
+  gender               String?
+  maritalStatus        String?
+  doj                  DateTime?
+  bankDetails          Json?
+  emergencyContact     Json?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model EmployeeSalary {
+  id                 Int      @id @default(autoincrement())
+  employeeId         String   @unique
+  companyId          Int
+  wage               Decimal  @default(0)
+  workingDaysPerWeek Int      @default(5)
+  breakTimeMinutes   Int      @default(60)
+  pfPercentage       Decimal  @default(0)
+  professionalTax    Decimal  @default(0)
+  components         Json     @default("[]") // [{name, type, value}]
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PayrollRecord {
+  id                 Int      @id @default(autoincrement())
+  employeeId         String
+  companyId          Int
+  month              Int
+  year               Int
+  payableDays        Decimal
+  unpaidLeaveDays    Decimal
+  grossSalary        Decimal
+  componentBreakdown Json
+  pfDeduction        Decimal
+  professionalTax    Decimal
+  netSalary          Decimal
+  status             String   @default("draft") // "draft" | "finalized"
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([employeeId, month, year])
+}
