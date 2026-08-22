@@ -76,6 +76,10 @@ const AdminPayroll = () => {
   const handleFinalize = async (id) => {
     if (!window.confirm("Are you sure you want to finalize this payslip? It cannot be edited afterward.")) return;
     try {
+      // Save any pending edits before finalizing
+      if (selectedRecord && selectedRecord.id === id) {
+        await updatePayroll(id, editData);
+      }
       await finalizePayroll(id);
       fetchPayroll();
       if (selectedRecord?.id === id) handleClose();
@@ -245,7 +249,14 @@ const AdminPayroll = () => {
                       <TextField 
                         fullWidth type="number"
                         value={editData.grossSalary || 0}
-                        onChange={e => setEditData({...editData, grossSalary: Number(e.target.value)})}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setEditData(prev => ({
+                            ...prev, 
+                            grossSalary: val,
+                            netSalary: Math.max(0, val - (prev.pfDeduction || 0) - (prev.professionalTax || 0))
+                          }));
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -253,7 +264,14 @@ const AdminPayroll = () => {
                       <TextField 
                         fullWidth type="number"
                         value={editData.pfDeduction || 0}
-                        onChange={e => setEditData({...editData, pfDeduction: Number(e.target.value)})}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setEditData(prev => ({
+                            ...prev, 
+                            pfDeduction: val,
+                            netSalary: Math.max(0, (prev.grossSalary || 0) - val - (prev.professionalTax || 0))
+                          }));
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -261,7 +279,14 @@ const AdminPayroll = () => {
                       <TextField 
                         fullWidth type="number"
                         value={editData.professionalTax || 0}
-                        onChange={e => setEditData({...editData, professionalTax: Number(e.target.value)})}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setEditData(prev => ({
+                            ...prev, 
+                            professionalTax: val,
+                            netSalary: Math.max(0, (prev.grossSalary || 0) - (prev.pfDeduction || 0) - val)
+                          }));
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>

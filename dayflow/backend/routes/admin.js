@@ -74,6 +74,28 @@ router.post('/employees', async (req, res) => {
       }
     });
 
+    // Initialize EmployeeSalary with default 50/50 breakdown if wage provided
+    const wageValue = req.body.wage ? Number(req.body.wage) : 0;
+    await prisma.employeeSalary.create({
+      data: {
+        employeeId: newEmployeeId,
+        companyId: adminUser.companyId,
+        wage: wageValue,
+        workingDaysPerWeek: 5,
+        breakTimeMinutes: 60,
+        pfPercentage: 12,
+        professionalTax: 200,
+        components: [
+          { name: 'Basic Salary', type: 'percentage_of_wage', value: 50 },
+          { name: 'House Rent Allowance', type: 'percentage_of_basic', value: 50 },
+          { name: 'Standard Allowance', type: 'percentage_of_basic', value: 16.67 },
+          { name: 'Performance Bonus', type: 'percentage_of_basic', value: 8.33 },
+          { name: 'Leave Travel Allowance', type: 'percentage_of_basic', value: 8.33 },
+          { name: 'Fixed Allowance', type: 'percentage_of_basic', value: 11.67 }
+        ]
+      }
+    });
+
     res.status(201).json({
       message: 'Employee created successfully',
       user: {
@@ -152,6 +174,39 @@ router.patch('/employees/:id', async (req, res) => {
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete employee
+router.delete('/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+    if (!user) return res.status(404).json({ error: 'Employee not found' });
+    
+    // Prevent deleting the primary admin or self
+    if (user.role === 'admin' && req.user.id === user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own admin account' });
+    }
+
+    const employeeId = user.employeeId;
+
+    // Delete all associated records in a transaction to prevent orphans
+    await prisma.$transaction([
+      prisma.attendance.deleteMany({ where: { employeeId } }),
+      prisma.leaveRequest.deleteMany({ where: { employeeId } }),
+      prisma.payrollRecord.deleteMany({ where: { employeeId } }),
+      prisma.payroll.deleteMany({ where: { employeeId } }),
+      prisma.employeeSalary.deleteMany({ where: { employeeId } }),
+      prisma.employeeProfile.deleteMany({ where: { employeeId } }),
+      prisma.leaveBalance.deleteMany({ where: { employeeId } }),
+      prisma.user.delete({ where: { id: user.id } })
+    ]);
+
+    res.json({ message: 'Employee successfully removed' });
+  } catch (error) {
+    console.error('Error deleting employee:', error);
+    res.status(500).json({ error: 'Failed to remove employee' });
   }
 });
 

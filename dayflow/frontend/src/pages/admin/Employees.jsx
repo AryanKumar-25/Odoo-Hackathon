@@ -4,7 +4,7 @@ import {
   Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, CircularProgress, IconButton, Tooltip, Chip
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { getEmployees, updateEmployee, createEmployee } from '../../api/admin';
+import { getEmployees, updateEmployee, createEmployee, deleteEmployee } from '../../api/admin';
 
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
@@ -14,7 +14,7 @@ const Employees = () => {
   const [editData, setEditData] = useState(null);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [addData, setAddData] = useState({ name: '', email: '', phone: '', dateOfJoining: '' });
+  const [addData, setAddData] = useState({ name: '', email: '', phone: '', dateOfJoining: '', wage: '' });
   const [addLoading, setAddLoading] = useState(false);
 
   const [successOpen, setSuccessOpen] = useState(false);
@@ -57,7 +57,7 @@ const Employees = () => {
   };
 
   const handleAddOpen = () => {
-    setAddData({ name: '', email: '', phone: '', dateOfJoining: '' });
+    setAddData({ name: '', email: '', phone: '', dateOfJoining: '', wage: '' });
     setAddOpen(true);
   };
 
@@ -93,6 +93,17 @@ const Employees = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handleDelete = async (emp) => {
+    if (!window.confirm(`Are you sure you want to completely remove ${emp.name} (${emp.employeeId})? This action cannot be undone.`)) return;
+    try {
+      await deleteEmployee(emp.id);
+      fetchEmployees();
+    } catch (error) {
+      console.error('Error deleting employee', error);
+      alert(error.response?.data?.error || 'Failed to delete employee');
+    }
   };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8, p: 4, bgcolor: '#fff', border: '2px solid #000', borderRadius: '12px', boxShadow: '8px 8px 0 #000' }}><CircularProgress sx={{ color: '#000' }} /></Box>;
@@ -157,7 +168,10 @@ const Employees = () => {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <Button variant="outlined" size="small" onClick={() => handleEditClick(emp)} sx={{ bgcolor: '#fff' }}>EDIT</Button>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                      <Button variant="outlined" size="small" onClick={() => handleEditClick(emp)} sx={{ bgcolor: '#fff' }}>EDIT</Button>
+                      <Button variant="contained" size="small" onClick={() => handleDelete(emp)} sx={{ bgcolor: '#171E19', color: '#fff' }}>REMOVE</Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))
@@ -246,36 +260,58 @@ const Employees = () => {
           </DialogTitle>
           <DialogContent sx={{ pt: 3 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-              <TextField 
-                label="NAME" 
-                value={addData.name} 
-                onChange={(e) => setAddData({ ...addData, name: e.target.value })} 
-                required
-                InputLabelProps={{ sx: { fontWeight: 800 } }}
-              />
-              <TextField 
-                label="EMAIL" 
-                type="email"
-                value={addData.email} 
-                onChange={(e) => setAddData({ ...addData, email: e.target.value })} 
-                required
-                InputLabelProps={{ sx: { fontWeight: 800 } }}
-              />
-              <TextField 
-                label="PHONE (OPTIONAL)" 
-                value={addData.phone} 
-                onChange={(e) => setAddData({ ...addData, phone: e.target.value })} 
-                InputLabelProps={{ sx: { fontWeight: 800 } }}
-              />
-              <TextField 
-                label="DATE OF JOINING" 
-                type="date"
-                InputLabelProps={{ shrink: true, sx: { fontWeight: 800 } }}
-                inputProps={{ sx: { fontWeight: 700 } }}
-                value={addData.dateOfJoining} 
-                onChange={(e) => setAddData({ ...addData, dateOfJoining: e.target.value })} 
-                required
-              />
+              <Box>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 1, textTransform: 'uppercase' }}>Name *</Typography>
+                <TextField 
+                  fullWidth
+                  placeholder="Enter employee name"
+                  value={addData.name} 
+                  onChange={(e) => setAddData({ ...addData, name: e.target.value })} 
+                  required
+                />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 1, textTransform: 'uppercase' }}>Email *</Typography>
+                <TextField 
+                  fullWidth
+                  type="email"
+                  placeholder="employee@company.com"
+                  value={addData.email} 
+                  onChange={(e) => setAddData({ ...addData, email: e.target.value })} 
+                  required
+                />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 1, textTransform: 'uppercase' }}>Phone (Optional)</Typography>
+                <TextField 
+                  fullWidth
+                  placeholder="+91 9876543210"
+                  value={addData.phone} 
+                  onChange={(e) => setAddData({ ...addData, phone: e.target.value })} 
+                />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 1, textTransform: 'uppercase' }}>Date of Joining *</Typography>
+                <TextField 
+                  fullWidth
+                  type="date"
+                  inputProps={{ sx: { fontWeight: 700 } }}
+                  value={addData.dateOfJoining} 
+                  onChange={(e) => setAddData({ ...addData, dateOfJoining: e.target.value })} 
+                  required
+                />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 1, textTransform: 'uppercase' }}>Monthly Wage (₹) *</Typography>
+                <TextField 
+                  fullWidth
+                  type="number"
+                  placeholder="e.g. 50000"
+                  value={addData.wage} 
+                  onChange={(e) => setAddData({ ...addData, wage: e.target.value })} 
+                  required
+                />
+              </Box>
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2, borderTop: '2px solid #000' }}>

@@ -5,6 +5,7 @@ export const getEmployees = () => apiClient.get('/admin/employees');
 export const getEmployee = (id) => apiClient.get(`/admin/employees/${id}`);
 export const updateEmployee = (id, data) => apiClient.patch(`/admin/employees/${id}`, data);
 export const createEmployee = (data) => apiClient.post('/admin/employees', data);
+export const deleteEmployee = (id) => apiClient.delete(`/admin/employees/${id}`);
 
 // Attendance
 export const getAttendance = (params) => apiClient.get('/admin/attendance', { params });

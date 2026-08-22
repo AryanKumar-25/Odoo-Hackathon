@@ -254,11 +254,34 @@ router.post('/generate', requireAdmin, async (req, res) => {
       
       // Calculate prorated gross salary
       const prorationFactor = totalMonthDays > 0 ? (payableDays / totalMonthDays) : 0;
-      const grossSalary = salaryConfig.wage * prorationFactor;
+      
+      let computedBasic = 0;
+      let totalGross = 0;
+      const components = salaryConfig.components || [];
+      const evaluatedComponents = components.map(c => {
+        let calcVal = 0;
+        let baseValForProration = 0;
+        
+        if (c.type === 'percentage_of_wage') {
+          baseValForProration = (Number(salaryConfig.wage) * Number(c.value)) / 100;
+          if (c.name.toLowerCase().includes('basic')) computedBasic = baseValForProration;
+        } else if (c.type === 'percentage_of_basic') {
+          const basicToUse = computedBasic > 0 ? computedBasic : (Number(salaryConfig.wage) * 0.5);
+          baseValForProration = (basicToUse * Number(c.value)) / 100;
+        } else if (c.type === 'fixed') {
+          baseValForProration = Number(c.value);
+        }
+        
+        calcVal = baseValForProration * prorationFactor;
+        totalGross += calcVal;
+        return { name: c.name, val: calcVal, originalVal: baseValForProration };
+      });
 
-      // Fix components to be accurate for snapshot, scaling amounts if needed
+      const grossSalary = totalGross;
+
       // pfPercentage is stored in EmployeeSalary, we need to calculate the actual deduction amount
-      const pfDeductionVal = (baseGross * parseFloat(salaryConfig.pfPercentage || 0)) / 100;
+      const actualBasic = computedBasic > 0 ? (computedBasic * prorationFactor) : (grossSalary * 0.5);
+      const pfDeductionVal = (actualBasic * parseFloat(salaryConfig.pfPercentage || 0)) / 100;
       const ptVal = parseFloat(salaryConfig.professionalTax || 0);
 
       const netSalary = grossSalary - pfDeductionVal - ptVal;
