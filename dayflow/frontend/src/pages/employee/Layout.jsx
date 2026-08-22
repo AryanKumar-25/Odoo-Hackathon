@@ -143,26 +143,7 @@ const Layout = () => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {!todayRecord ? (
-                <Button variant="contained" sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#171E19' } }} onClick={handleCheckIn}>
-                  Check In
-                </Button>
-              ) : isCheckedIn ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography variant="subtitle2" fontWeight="800">
-                    Since {formatCheckInTime}
-                  </Typography>
-                  <Button variant="outlined" onClick={handleCheckOut}>
-                    Check Out
-                  </Button>
-                </Box>
-              ) : (
-                <Typography variant="subtitle2" fontWeight="800" sx={{ bgcolor: '#B7C6C2', px: 2, py: 0.5, border: '2px solid #000', borderRadius: '4px' }}>
-                  Checked out
-                </Typography>
-              )}
-            </Box>
+
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <IconButton sx={{ border: '2px solid transparent', '&:hover': { border: '2px solid #000', bgcolor: '#f0f0f0' } }}>
