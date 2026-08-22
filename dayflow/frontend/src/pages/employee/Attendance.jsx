@@ -8,7 +8,6 @@ import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { getMyAttendance, checkIn, checkOut } from '../../api/employee';
 
-// Assumed Standard Workday Length (for Payroll teammate to use as well)
 const STANDARD_WORK_HOURS = 8;
 
 const Attendance = () => {
@@ -16,7 +15,6 @@ const Attendance = () => {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Derive month string (YYYY-MM) for API
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, '0');
   const monthString = `${year}-${month}`;
@@ -48,7 +46,7 @@ const Attendance = () => {
   const handleCheckIn = async () => {
     try {
       await checkIn();
-      fetchAttendance(); // refresh records
+      fetchAttendance(); 
     } catch (error) {
       alert(error.response?.data?.error || 'Check-in failed');
     }
@@ -57,19 +55,17 @@ const Attendance = () => {
   const handleCheckOut = async () => {
     try {
       await checkOut();
-      fetchAttendance(); // refresh records
+      fetchAttendance(); 
     } catch (error) {
       alert(error.response?.data?.error || 'Check-out failed');
     }
   };
 
-  // Determine if today's checkin/checkout buttons should be enabled
   const todayStr = new Date().toISOString().split('T')[0];
   const todayRecord = records.find(r => r.date.startsWith(todayStr));
   const hasCheckedInToday = !!(todayRecord && todayRecord.checkIn);
   const hasCheckedOutToday = !!(todayRecord && todayRecord.checkOut);
 
-  // Generate days for the current month
   const daysInMonth = new Date(year, currentDate.getMonth() + 1, 0).getDate();
   const monthDays = [];
   
@@ -89,7 +85,6 @@ const Attendance = () => {
     let record = records.find(r => r.date.startsWith(dayStr));
     let status = record ? record.status : null;
     
-    // Auto-mark absent if past day and no record exists
     if (!record && dayDate < new Date().setUTCHours(0,0,0,0)) {
       status = 'absent';
     }
@@ -106,13 +101,13 @@ const Attendance = () => {
         const diffMs = outTime - inTime;
         workHours = diffMs / (1000 * 60 * 60);
         
-        extraHours = Math.max(0, workHours - STANDARD_WORK_HOURS); // Floor at 0
+        extraHours = Math.max(0, workHours - STANDARD_WORK_HOURS); 
         
         workHoursDisplay = workHours.toFixed(2);
         extraHoursDisplay = extraHours.toFixed(2);
         totalWorkingHours += workHours;
       } else {
-        workHoursDisplay = 'In progress';
+        workHoursDisplay = 'IN PROGRESS';
         extraHoursDisplay = '-';
       }
     }
@@ -124,7 +119,7 @@ const Attendance = () => {
     }
 
     monthDays.push({
-      dateStr: dayDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }),
+      dateStr: dayDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
       checkIn: record && record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
       checkOut: record && record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
       status: status,
@@ -135,100 +130,117 @@ const Attendance = () => {
 
   return (
     <Box>
-      {/* Sub-header row */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">Attendance</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'flex-end' }, gap: 3 }}>
+        <Box>
+          <Typography variant="h2" sx={{ fontSize: '2.5rem', mb: 1 }}>ATTENDANCE</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 500, color: '#171E19' }}>
+            Track your hours and daily check-ins.
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', md: 'auto' } }}>
           <Button 
             variant="contained" 
-            color="primary" 
             onClick={handleCheckIn} 
             disabled={hasCheckedInToday}
+            sx={{ flex: { xs: 1, md: 'none' }, bgcolor: '#FFE17C', color: '#000', py: 1.5, px: 3, fontSize: '1.1rem', '&:hover': { bgcolor: '#e5ca6f' } }}
           >
-            Check In
+            CHECK IN
           </Button>
           <Button 
             variant="contained" 
-            color="secondary" 
             onClick={handleCheckOut} 
             disabled={!hasCheckedInToday || hasCheckedOutToday}
+            sx={{ flex: { xs: 1, md: 'none' }, bgcolor: '#171E19', color: '#fff', py: 1.5, px: 3, fontSize: '1.1rem', '&:hover': { bgcolor: '#000' } }}
           >
-            Check Out
+            CHECK OUT
           </Button>
         </Box>
       </Box>
 
-      {/* Controls row */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2, p: 2, bgcolor: '#fff', border: '2px solid #000', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton onClick={handlePrevMonth}><ArrowBackIosIcon fontSize="small" /></IconButton>
-          <Typography variant="h6" sx={{ mx: 2, minWidth: 100, textAlign: 'center' }}>
-            {currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+          <IconButton onClick={handlePrevMonth} sx={{ border: '2px solid #000', borderRadius: '4px', p: 1, '&:hover': { bgcolor: '#f0f0f0' } }}>
+            <ArrowBackIosIcon fontSize="small" sx={{ ml: 0.5, color: '#000' }} />
+          </IconButton>
+          <Typography variant="h4" sx={{ mx: 3, minWidth: 150, textAlign: 'center', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
           </Typography>
-          <IconButton onClick={handleNextMonth}><ArrowForwardIosIcon fontSize="small" /></IconButton>
+          <IconButton onClick={handleNextMonth} sx={{ border: '2px solid #000', borderRadius: '4px', p: 1, '&:hover': { bgcolor: '#f0f0f0' } }}>
+            <ArrowForwardIosIcon fontSize="small" sx={{ color: '#000' }} />
+          </IconButton>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Paper sx={{ px: 2, py: 1, textAlign: 'center' }}>
-            <Typography variant="body2" color="textSecondary">Count of days present</Typography>
-            <Typography variant="h6">{daysPresent}</Typography>
-          </Paper>
-          <Paper sx={{ px: 2, py: 1, textAlign: 'center' }}>
-            <Typography variant="body2" color="textSecondary">Leaves count</Typography>
-            <Typography variant="h6">{leavesCount}</Typography>
-          </Paper>
-          <Paper sx={{ px: 2, py: 1, textAlign: 'center' }}>
-            <Typography variant="body2" color="textSecondary">Total working hours</Typography>
-            <Typography variant="h6">{totalWorkingHours.toFixed(1)}h</Typography>
-          </Paper>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ px: 2, py: 1, textAlign: 'center', bgcolor: '#FFE17C', border: '2px solid #000', borderRadius: '8px' }}>
+            <Typography variant="body2" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>DAYS PRESENT</Typography>
+            <Typography variant="h4">{daysPresent}</Typography>
+          </Box>
+          <Box sx={{ px: 2, py: 1, textAlign: 'center', bgcolor: '#B7C6C2', border: '2px solid #000', borderRadius: '8px' }}>
+            <Typography variant="body2" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>LEAVES TAKEN</Typography>
+            <Typography variant="h4">{leavesCount}</Typography>
+          </Box>
+          <Box sx={{ px: 2, py: 1, textAlign: 'center', bgcolor: '#eee', border: '2px solid #000', borderRadius: '8px' }}>
+            <Typography variant="body2" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>TOTAL HOURS</Typography>
+            <Typography variant="h4">{totalWorkingHours.toFixed(1)}h</Typography>
+          </Box>
         </Box>
       </Box>
 
-      <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-        Today: {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-      </Typography>
-
-      {/* Data Table */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8, p: 4, bgcolor: '#fff', border: '2px solid #000', borderRadius: '12px', boxShadow: '8px 8px 0 #000' }}>
+          <CircularProgress sx={{ color: '#000' }} />
+        </Box>
       ) : (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ bgcolor: '#fff' }}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Check In</TableCell>
-                <TableCell>Check Out</TableCell>
-                <TableCell align="right">Work Hours</TableCell>
-                <TableCell align="right">Extra hours</TableCell>
+                <TableCell>DATE</TableCell>
+                <TableCell>STATUS</TableCell>
+                <TableCell>CHECK IN</TableCell>
+                <TableCell>CHECK OUT</TableCell>
+                <TableCell align="right">WORK HOURS</TableCell>
+                <TableCell align="right">EXTRA HOURS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {monthDays.map((day, idx) => (
-                <TableRow key={idx}>
-                  <TableCell>{day.dateStr}</TableCell>
+                <TableRow key={idx} hover>
+                  <TableCell sx={{ fontWeight: 800 }}>{day.dateStr}</TableCell>
                   <TableCell>
                     {day.status ? (
                       <Chip 
-                        label={day.status} 
+                        label={day.status.toUpperCase()} 
                         size="small" 
-                        color={
-                          day.status === 'present' ? 'success' : 
-                          day.status === 'absent' ? 'error' : 
-                          day.status === 'leave' ? 'warning' : 'default'
-                        } 
+                        sx={{
+                          fontWeight: 800,
+                          border: '2px solid #000',
+                          bgcolor: day.status === 'present' ? '#B7C6C2' : 
+                                   day.status === 'absent' ? '#171E19' : 
+                                   day.status === 'leave' ? '#FFE17C' : '#fff',
+                          color: day.status === 'absent' ? '#fff' : '#000'
+                        }}
                       />
                     ) : (
-                      <Typography variant="body2" color="textSecondary">-</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#666' }}>-</Typography>
                     )}
                   </TableCell>
-                  <TableCell>{day.status === 'absent' || day.status === 'leave' ? '-' : day.checkIn}</TableCell>
-                  <TableCell>{day.status === 'absent' || day.status === 'leave' ? '-' : day.checkOut}</TableCell>
-                  <TableCell align="right">{day.workHoursDisplay}</TableCell>
-                  <TableCell align="right">{day.extraHoursDisplay}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{day.status === 'absent' || day.status === 'leave' ? '-' : day.checkIn}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{day.status === 'absent' || day.status === 'leave' ? '-' : day.checkOut}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>{day.workHoursDisplay}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>{day.extraHoursDisplay}</TableCell>
                 </TableRow>
               ))}
+              {monthDays.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                    <Typography variant="h3" sx={{ mb: 2 }}>NO ATTENDANCE RECORDS</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      No records found for this month yet.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>

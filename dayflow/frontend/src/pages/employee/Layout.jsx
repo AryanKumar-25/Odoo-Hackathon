@@ -88,88 +88,124 @@ const Layout = () => {
     formatCheckInTime = new Date(todayRecord.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  const navItems = [
+    { label: 'Directory', path: '/employee', exact: true },
+    { label: 'Attendance', path: '/employee/attendance' },
+    { label: 'Time Off', path: '/employee/leave' },
+    { label: 'Payroll', path: '/employee/payroll' },
+  ];
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mr: 4 }}>
-            Dayflow
-          </Typography>
-          
-          <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
-            <Button 
-              color={location.pathname === '/employee' ? 'primary' : 'inherit'}
-              onClick={() => navigate('/employee')}
-            >
-              Employees
-            </Button>
-            <Button 
-              color={location.pathname.includes('/employee/attendance') ? 'primary' : 'inherit'}
-              onClick={() => navigate('/employee/attendance')}
-            >
-              Attendance
-            </Button>
-            <Button 
-              color={location.pathname.includes('/employee/leave') ? 'primary' : 'inherit'}
-              onClick={() => navigate('/employee/leave')}
-            >
-              Time Off
-            </Button>
-            <Button 
-              color={location.pathname.includes('/employee/payroll') ? 'primary' : 'inherit'}
-              onClick={() => navigate('/employee/payroll')}
-            >
-              Payroll
-            </Button>
+      <AppBar 
+        position="sticky" 
+        elevation={0}
+        sx={{ 
+          bgcolor: '#fff', 
+          borderBottom: '2px solid #000',
+          color: '#000'
+        }}
+      >
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Typography variant="h2" sx={{ fontSize: '1.5rem', bgcolor: '#FFE17C', px: 2, py: 0.5, border: '2px solid #000', borderRadius: '8px', boxShadow: '2px 2px 0 #000' }}>
+              DAYFLOW
+            </Typography>
+            
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
+              {navItems.map(item => {
+                const isActive = item.exact 
+                  ? location.pathname === item.path 
+                  : location.pathname.startsWith(item.path);
+                  
+                return (
+                  <Button 
+                    key={item.label}
+                    onClick={() => navigate(item.path)}
+                    sx={{
+                      fontWeight: 800,
+                      color: '#000',
+                      border: '2px solid transparent',
+                      bgcolor: isActive ? '#FFE17C' : 'transparent',
+                      border: isActive ? '2px solid #000' : '2px solid transparent',
+                      boxShadow: isActive ? '2px 2px 0 #000' : 'none',
+                      transform: isActive ? 'translate(-2px, -2px)' : 'none',
+                      '&:hover': {
+                        bgcolor: isActive ? '#FFE17C' : '#f0f0f0',
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                );
+              })}
+            </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {!todayRecord ? (
-              <Button variant="contained" color="primary" onClick={handleCheckIn}>
-                Check In
-              </Button>
-            ) : isCheckedIn ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" color="textSecondary">
-                  Since {formatCheckInTime}
-                </Typography>
-                <Button variant="outlined" color="primary" onClick={handleCheckOut}>
-                  Check Out
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {!todayRecord ? (
+                <Button variant="contained" sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#171E19' } }} onClick={handleCheckIn}>
+                  Check In
                 </Button>
-              </Box>
-            ) : (
-              <Typography variant="caption" color="textSecondary">
-                Checked out today
-              </Typography>
-            )}
+              ) : isCheckedIn ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="subtitle2" fontWeight="800">
+                    Since {formatCheckInTime}
+                  </Typography>
+                  <Button variant="outlined" onClick={handleCheckOut}>
+                    Check Out
+                  </Button>
+                </Box>
+              ) : (
+                <Typography variant="subtitle2" fontWeight="800" sx={{ bgcolor: '#B7C6C2', px: 2, py: 0.5, border: '2px solid #000', borderRadius: '4px' }}>
+                  Checked out
+                </Typography>
+              )}
+            </Box>
 
-            <IconButton color="inherit">
-              <NotificationsIcon />
-            </IconButton>
-            
-            <IconButton onClick={handleMenu} color="inherit">
-              <Badge 
-                overlap="circular" 
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                variant="dot"
-                color={isCheckedIn ? 'success' : 'error'}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton sx={{ border: '2px solid transparent', '&:hover': { border: '2px solid #000', bgcolor: '#f0f0f0' } }}>
+                <NotificationsIcon sx={{ color: '#000' }} />
+              </IconButton>
+              
+              <IconButton 
+                onClick={handleMenu} 
+                sx={{ 
+                  p: 0, 
+                  border: '2px solid #000', 
+                  borderRadius: '8px',
+                  boxShadow: '2px 2px 0 #000',
+                  transition: 'transform 0.1s ease',
+                  '&:hover': { transform: 'translate(-1px, -1px)', boxShadow: '3px 3px 0 #000' }
+                }}
               >
-                <Avatar sx={{ width: 32, height: 32 }} />
-              </Badge>
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-            >
-              <MenuItem onClick={goToProfile}>My Profile</MenuItem>
-              <MenuItem onClick={doLogout}>Log Out</MenuItem>
-            </Menu>
+                <Avatar sx={{ width: 40, height: 40, bgcolor: '#FFE17C', color: '#000', fontWeight: 800, borderRadius: '6px' }}>
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+                PaperProps={{
+                  sx: {
+                    mt: 1,
+                    border: '2px solid #000',
+                    boxShadow: '4px 4px 0 #000',
+                    borderRadius: '8px',
+                  }
+                }}
+              >
+                <MenuItem onClick={goToProfile} sx={{ fontWeight: 700 }}>My Profile</MenuItem>
+                <MenuItem onClick={doLogout} sx={{ fontWeight: 700, color: 'error.main' }}>Log Out</MenuItem>
+              </Menu>
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>
       
-      <Box component="main" sx={{ flexGrow: 1, p: 3, bgcolor: 'background.default' }}>
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 4 } }}>
         <Outlet />
       </Box>
     </Box>

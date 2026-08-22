@@ -10,13 +10,11 @@ const Leave = () => {
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Apply Modal State
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({ type: 'paid', startDate: '', endDate: '', remarks: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch leaves and balance
   const fetchData = async () => {
     try {
       const [leavesRes, balanceRes] = await Promise.all([
@@ -35,7 +33,6 @@ const Leave = () => {
   useEffect(() => {
     fetchData();
     
-    // Poll for status updates every 15 seconds
     const interval = setInterval(() => {
       fetchData();
     }, 15000);
@@ -59,7 +56,6 @@ const Leave = () => {
     setSubmitting(true);
     setError('');
     
-    // Client-side pre-check
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
     const requestedDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
@@ -80,7 +76,7 @@ const Leave = () => {
     try {
       await applyLeave(formData);
       handleClose();
-      fetchData(); // Immediate refresh after submission
+      fetchData(); 
     } catch (err) {
       console.error('Error applying for leave', err);
       setError(err.response?.data?.error || 'Failed to apply for leave. Please check your dates.');
@@ -92,64 +88,75 @@ const Leave = () => {
   const getStatusChip = (status) => {
     switch (status) {
       case 'approved':
-        return <Chip label="Approved" color="success" size="small" />;
+        return <Chip label="APPROVED" sx={{ bgcolor: '#B7C6C2', color: '#000', border: '2px solid #000', fontWeight: 800 }} size="small" />;
       case 'rejected':
-        return <Chip label="Rejected" color="error" size="small" />;
+        return <Chip label="REJECTED" sx={{ bgcolor: '#171E19', color: '#fff', border: '2px solid #000', fontWeight: 800 }} size="small" />;
       default:
-        return <Chip label="Pending" color="warning" size="small" />;
+        return <Chip label="PENDING" sx={{ bgcolor: '#FFE17C', color: '#000', border: '2px solid #000', fontWeight: 800 }} size="small" />;
     }
   };
 
-  // Ensure minimum date is today for the native date pickers
   const today = new Date().toISOString().split('T')[0];
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8, p: 4, bgcolor: '#fff', border: '2px solid #000', borderRadius: '12px', boxShadow: '8px 8px 0 #000' }}><CircularProgress sx={{ color: '#000' }} /></Box>;
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'flex-end' }, gap: 3 }}>
         <Box>
-          <Typography variant="h4" gutterBottom>Leave History</Typography>
+          <Typography variant="h2" sx={{ fontSize: '2.5rem', mb: 1 }}>LEAVE REQUESTS</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 500, color: '#171E19', mb: 2 }}>
+            Manage your time off and leave balances.
+          </Typography>
           {balance && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Chip label={`Paid Time Off: ${balance.paidDays} Days Available`} color="primary" variant="outlined" />
-              <Chip label={`Sick Time Off: ${balance.sickDays} Days Available`} color="secondary" variant="outlined" />
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Chip label={`PAID: ${balance.paidDays} DAYS`} sx={{ bgcolor: '#fff', border: '2px solid #000', borderRadius: '8px', fontWeight: 800 }} />
+              <Chip label={`SICK: ${balance.sickDays} DAYS`} sx={{ bgcolor: '#fff', border: '2px solid #000', borderRadius: '8px', fontWeight: 800 }} />
             </Box>
           )}
         </Box>
-        <Button variant="contained" color="primary" onClick={handleOpen}>
-          Apply for Leave
+        <Button 
+          variant="contained" 
+          onClick={handleOpen}
+          sx={{ bgcolor: '#FFE17C', color: '#000', py: 1.5, px: 3, fontSize: '1.1rem', '&:hover': { bgcolor: '#e5ca6f' } }}
+        >
+          APPLY FOR LEAVE
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ bgcolor: '#fff' }}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Type</TableCell>
-              <TableCell>Start Date</TableCell>
-              <TableCell>End Date</TableCell>
-              <TableCell>Remarks</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Admin Comment</TableCell>
+              <TableCell>TYPE</TableCell>
+              <TableCell>START DATE</TableCell>
+              <TableCell>END DATE</TableCell>
+              <TableCell>REMARKS</TableCell>
+              <TableCell>STATUS</TableCell>
+              <TableCell>ADMIN COMMENT</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {leaves.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">You have no leave history.</TableCell>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <Typography variant="h3" sx={{ mb: 2 }}>NO LEAVE HISTORY</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    You haven't requested any leaves yet.
+                  </Typography>
+                </TableCell>
               </TableRow>
             ) : (
               leaves.map((leave) => (
-                <TableRow key={leave.id}>
-                  <TableCell sx={{ textTransform: 'capitalize' }}>{leave.type}</TableCell>
-                  <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
+                <TableRow key={leave.id} hover>
+                  <TableCell sx={{ fontWeight: 800, textTransform: 'uppercase' }}>{leave.type}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{new Date(leave.startDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{new Date(leave.endDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}</TableCell>
                   <TableCell>{leave.remarks || '-'}</TableCell>
                   <TableCell>{getStatusChip(leave.status)}</TableCell>
                   <TableCell>
                     {leave.adminComment && (
-                      <Typography variant="body2" color={leave.status === 'rejected' ? 'error' : 'textSecondary'}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: leave.status === 'rejected' ? '#d32f2f' : '#666' }}>
                         {leave.adminComment}
                       </Typography>
                     )}
@@ -161,46 +168,65 @@ const Leave = () => {
         </Table>
       </TableContainer>
 
-      {/* Apply Leave Modal */}
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+      <Dialog 
+        open={open} 
+        onClose={handleClose} 
+        fullWidth 
+        maxWidth="sm"
+        PaperProps={{ sx: { bgcolor: '#fff' } }}
+      >
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Apply for Leave</DialogTitle>
-          <DialogContent>
+          <DialogTitle sx={{ 
+            fontFamily: 'Cabinet Grotesk, system-ui, sans-serif',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            borderBottom: '2px solid #000',
+            bgcolor: '#FFE17C',
+            color: '#000'
+          }}>
+            APPLY FOR LEAVE
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
             {error && (
-              <Alert severity="error" sx={{ mb: 2, mt: 1 }}>
+              <Alert 
+                severity="error" 
+                sx={{ mb: 3, border: '2px solid #000', borderRadius: '8px', fontWeight: 700 }}
+              >
                 {error}
               </Alert>
             )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
               <TextField 
                 select
-                label="Leave Type" 
+                label="LEAVE TYPE" 
                 value={formData.type} 
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 required
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
+                SelectProps={{ sx: { fontWeight: 800, fontFamily: 'Cabinet Grotesk, system-ui, sans-serif' } }}
               >
-                <MenuItem value="paid">Paid</MenuItem>
-                <MenuItem value="sick">Sick</MenuItem>
-                <MenuItem value="unpaid">Unpaid</MenuItem>
+                <MenuItem value="paid" sx={{ fontWeight: 700 }}>PAID</MenuItem>
+                <MenuItem value="sick" sx={{ fontWeight: 700 }}>SICK</MenuItem>
+                <MenuItem value="unpaid" sx={{ fontWeight: 700 }}>UNPAID</MenuItem>
               </TextField>
               
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField 
                   fullWidth
-                  label="Start Date" 
+                  label="START DATE" 
                   type="date"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ min: today }}
+                  InputLabelProps={{ shrink: true, sx: { fontWeight: 800 } }}
+                  inputProps={{ min: today, sx: { fontWeight: 700 } }}
                   value={formData.startDate} 
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
                   required
                 />
                 <TextField 
                   fullWidth
-                  label="End Date" 
+                  label="END DATE" 
                   type="date"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ min: formData.startDate || today }}
+                  InputLabelProps={{ shrink: true, sx: { fontWeight: 800 } }}
+                  inputProps={{ min: formData.startDate || today, sx: { fontWeight: 700 } }}
                   value={formData.endDate} 
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
                   required
@@ -208,18 +234,26 @@ const Leave = () => {
               </Box>
 
               <TextField 
-                label="Remarks (Optional)" 
+                label="REMARKS (OPTIONAL)" 
                 multiline
                 rows={3}
                 value={formData.remarks} 
                 onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} 
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit Request'}
+          <DialogActions sx={{ p: 2, borderTop: '2px solid #000' }}>
+            <Button onClick={handleClose} disabled={submitting} sx={{ fontWeight: 800, color: '#000' }}>
+              CANCEL
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={submitting}
+              sx={{ bgcolor: '#000', color: '#fff' }}
+            >
+              {submitting ? 'SUBMITTING...' : 'SUBMIT REQUEST'}
             </Button>
           </DialogActions>
         </form>

@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme';
 
 import AuthPage from './pages/auth';
 import EmployeeDashboard from './pages/employee';
@@ -9,8 +11,10 @@ import AdminDashboard from './pages/admin';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <Router>
         <Routes>
           <Route path="/auth/*" element={<AuthPage />} />
           
@@ -36,6 +40,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

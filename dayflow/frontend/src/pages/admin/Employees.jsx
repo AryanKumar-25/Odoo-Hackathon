@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, CircularProgress, IconButton, Tooltip
+  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, CircularProgress, IconButton, Tooltip, Chip
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getEmployees, updateEmployee, createEmployee } from '../../api/admin';
@@ -10,18 +10,15 @@ const Employees = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Edit Modal State
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  // Add Modal State
   const [addOpen, setAddOpen] = useState(false);
   const [addData, setAddData] = useState({ name: '', email: '', phone: '', dateOfJoining: '' });
   const [addLoading, setAddLoading] = useState(false);
 
-  // Success Dialog State
   const [successOpen, setSuccessOpen] = useState(false);
-  const [credentials, setCredentials] = useState(null); // { employeeId, plaintextPassword }
+  const [credentials, setCredentials] = useState(null);
 
   const fetchEmployees = async () => {
     try {
@@ -38,7 +35,6 @@ const Employees = () => {
     fetchEmployees();
   }, []);
 
-  // --- Edit Flow ---
   const handleEditClick = (employee) => {
     setEditData({ ...employee });
     setEditOpen(true);
@@ -60,7 +56,6 @@ const Employees = () => {
     }
   };
 
-  // --- Add Flow ---
   const handleAddOpen = () => {
     setAddData({ name: '', email: '', phone: '', dateOfJoining: '' });
     setAddOpen(true);
@@ -74,10 +69,8 @@ const Employees = () => {
     e.preventDefault();
     setAddLoading(true);
     try {
-      // Send data to backend. (Note: backend auto-generates year, so dateOfJoining is mostly UI)
       const res = await createEmployee(addData);
       
-      // Close add modal, open success modal with credentials
       setAddOpen(false);
       setCredentials({
         employeeId: res.data.user.employeeId,
@@ -95,51 +88,76 @@ const Employees = () => {
   const handleSuccessClose = () => {
     setSuccessOpen(false);
     setCredentials(null);
-    fetchEmployees(); // Refresh table immediately after closing the dialog
+    fetchEmployees(); 
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
   };
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8, p: 4, bgcolor: '#fff', border: '2px solid #000', borderRadius: '12px', boxShadow: '8px 8px 0 #000' }}><CircularProgress sx={{ color: '#000' }} /></Box>;
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4">Employees Management</Typography>
-        <Button variant="contained" color="primary" onClick={handleAddOpen}>
-          Add Employee
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'flex-end' }, gap: 3 }}>
+        <Box>
+          <Typography variant="h2" sx={{ fontSize: '2.5rem', mb: 1 }}>EMPLOYEES</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 500, color: '#171E19' }}>
+            Manage organization members and roles.
+          </Typography>
+        </Box>
+        <Button 
+          variant="contained" 
+          onClick={handleAddOpen}
+          sx={{ bgcolor: '#FFE17C', color: '#000', py: 1.5, px: 3, fontSize: '1.1rem', '&:hover': { bgcolor: '#e5ca6f' } }}
+        >
+          + ADD EMPLOYEE
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ bgcolor: '#fff' }}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Employee ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>SYSTEM ID</TableCell>
+              <TableCell>EMP ID</TableCell>
+              <TableCell>NAME</TableCell>
+              <TableCell>EMAIL</TableCell>
+              <TableCell>ROLE</TableCell>
+              <TableCell align="right">ACTIONS</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {employees.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">No employees found.</TableCell>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <Typography variant="h3" sx={{ mb: 2 }}>NO EMPLOYEES</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    No employees found in the directory.
+                  </Typography>
+                </TableCell>
               </TableRow>
             ) : (
               employees.map((emp) => (
-                <TableRow key={emp.id}>
-                  <TableCell>{emp.id}</TableCell>
-                  <TableCell>{emp.employeeId}</TableCell>
-                  <TableCell>{emp.name}</TableCell>
-                  <TableCell>{emp.email}</TableCell>
-                  <TableCell>{emp.role}</TableCell>
+                <TableRow key={emp.id} hover>
+                  <TableCell sx={{ fontWeight: 700, color: '#666' }}>{emp.id}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{emp.employeeId}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{emp.name}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{emp.email}</TableCell>
                   <TableCell>
-                    <Button variant="outlined" size="small" onClick={() => handleEditClick(emp)}>Edit</Button>
+                    <Chip 
+                      label={emp.role.toUpperCase()} 
+                      size="small" 
+                      sx={{
+                        fontWeight: 800,
+                        border: '2px solid #000',
+                        bgcolor: emp.role === 'admin' ? '#B7C6C2' : '#FFE17C',
+                        color: '#000'
+                      }} 
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Button variant="outlined" size="small" onClick={() => handleEditClick(emp)} sx={{ bgcolor: '#fff' }}>EDIT</Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -149,129 +167,183 @@ const Employees = () => {
       </TableContainer>
 
       {/* Edit Modal */}
-      <Dialog open={editOpen} onClose={handleEditClose} fullWidth maxWidth="sm">
-        <DialogTitle>Edit Employee</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={editOpen} 
+        onClose={handleEditClose} 
+        fullWidth 
+        maxWidth="sm"
+        PaperProps={{ sx: { bgcolor: '#fff' } }}
+      >
+        <DialogTitle sx={{ 
+          fontFamily: 'Cabinet Grotesk, system-ui, sans-serif',
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          borderBottom: '2px solid #000',
+          bgcolor: '#FFE17C',
+          color: '#000'
+        }}>
+          EDIT EMPLOYEE
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           {editData && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
               <TextField 
-                label="Employee ID" 
+                label="EMPLOYEE ID" 
                 value={editData.employeeId} 
                 onChange={(e) => setEditData({ ...editData, employeeId: e.target.value })} 
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
               <TextField 
-                label="Name" 
+                label="NAME" 
                 value={editData.name} 
                 onChange={(e) => setEditData({ ...editData, name: e.target.value })} 
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
               <TextField 
-                label="Email" 
+                label="EMAIL" 
                 value={editData.email} 
                 onChange={(e) => setEditData({ ...editData, email: e.target.value })} 
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
               <TextField 
                 select
-                label="Role" 
+                label="ROLE" 
                 value={editData.role} 
                 onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
+                SelectProps={{ sx: { fontWeight: 800, fontFamily: 'Cabinet Grotesk, system-ui, sans-serif' } }}
               >
-                <MenuItem value="employee">Employee</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="employee" sx={{ fontWeight: 700 }}>EMPLOYEE</MenuItem>
+                <MenuItem value="admin" sx={{ fontWeight: 700 }}>ADMIN</MenuItem>
               </TextField>
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleEditClose}>Cancel</Button>
-          <Button onClick={handleEditSave} variant="contained">Save</Button>
+        <DialogActions sx={{ p: 2, borderTop: '2px solid #000' }}>
+          <Button onClick={handleEditClose} sx={{ fontWeight: 800, color: '#000' }}>CANCEL</Button>
+          <Button onClick={handleEditSave} variant="contained" sx={{ bgcolor: '#000', color: '#fff' }}>SAVE CHANGES</Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Modal */}
-      <Dialog open={addOpen} onClose={handleAddClose} fullWidth maxWidth="sm">
+      <Dialog 
+        open={addOpen} 
+        onClose={handleAddClose} 
+        fullWidth 
+        maxWidth="sm"
+        PaperProps={{ sx: { bgcolor: '#fff' } }}
+      >
         <form onSubmit={handleAddSubmit}>
-          <DialogTitle>Add New Employee</DialogTitle>
-          <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <DialogTitle sx={{ 
+            fontFamily: 'Cabinet Grotesk, system-ui, sans-serif',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            borderBottom: '2px solid #000',
+            bgcolor: '#B7C6C2',
+            color: '#000'
+          }}>
+            ADD NEW EMPLOYEE
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
               <TextField 
-                label="Name" 
+                label="NAME" 
                 value={addData.name} 
                 onChange={(e) => setAddData({ ...addData, name: e.target.value })} 
                 required
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
               <TextField 
-                label="Email" 
+                label="EMAIL" 
                 type="email"
                 value={addData.email} 
                 onChange={(e) => setAddData({ ...addData, email: e.target.value })} 
                 required
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
               <TextField 
-                label="Phone (Optional)" 
+                label="PHONE (OPTIONAL)" 
                 value={addData.phone} 
                 onChange={(e) => setAddData({ ...addData, phone: e.target.value })} 
+                InputLabelProps={{ sx: { fontWeight: 800 } }}
               />
               <TextField 
-                label="Date of Joining" 
+                label="DATE OF JOINING" 
                 type="date"
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{ shrink: true, sx: { fontWeight: 800 } }}
+                inputProps={{ sx: { fontWeight: 700 } }}
                 value={addData.dateOfJoining} 
                 onChange={(e) => setAddData({ ...addData, dateOfJoining: e.target.value })} 
                 required
               />
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleAddClose} disabled={addLoading}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={addLoading}>
-              {addLoading ? 'Creating...' : 'Create Employee'}
+          <DialogActions sx={{ p: 2, borderTop: '2px solid #000' }}>
+            <Button onClick={handleAddClose} disabled={addLoading} sx={{ fontWeight: 800, color: '#000' }}>CANCEL</Button>
+            <Button type="submit" variant="contained" disabled={addLoading} sx={{ bgcolor: '#000', color: '#fff' }}>
+              {addLoading ? 'CREATING...' : 'CREATE EMPLOYEE'}
             </Button>
           </DialogActions>
         </form>
       </Dialog>
 
       {/* Success/Credentials Dialog */}
-      <Dialog open={!!credentials} onClose={handleSuccessClose} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ color: 'success.main', fontWeight: 'bold' }}>Employee Created Successfully!</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom>
+      <Dialog 
+        open={!!credentials} 
+        onClose={handleSuccessClose} 
+        fullWidth 
+        maxWidth="sm"
+        PaperProps={{ sx: { bgcolor: '#fff', border: '4px solid #171E19' } }}
+      >
+        <DialogTitle sx={{ 
+          fontFamily: 'Cabinet Grotesk, system-ui, sans-serif',
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          borderBottom: '2px solid #000',
+          bgcolor: '#FFE17C',
+          color: '#000'
+        }}>
+          EMPLOYEE CREATED SUCCESSFULLY!
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography variant="body1" sx={{ fontWeight: 700, mb: 1 }}>
             Please copy the credentials below and securely share them with the new employee.
           </Typography>
-          <Typography variant="body2" color="error" fontWeight="bold" gutterBottom>
-            Save this now — the temporary password will NEVER be shown again.
+          <Typography variant="body2" sx={{ fontWeight: 800, color: '#d32f2f', mb: 3 }}>
+            SAVE THIS NOW — THE TEMPORARY PASSWORD WILL NEVER BE SHOWN AGAIN.
           </Typography>
 
           {credentials && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 1, border: '1px solid #ccc' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ mt: 3, p: 3, bgcolor: '#f5f5f5', border: '2px dashed #000', borderRadius: '8px' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, pb: 2, borderBottom: '2px solid #e0e0e0' }}>
                 <Box>
-                  <Typography variant="caption" color="textSecondary">Generated Employee ID</Typography>
-                  <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>{credentials.employeeId}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#666' }}>GENERATED EMPLOYEE ID</Typography>
+                  <Typography variant="h5" sx={{ fontFamily: 'monospace', fontWeight: 700, mt: 0.5 }}>{credentials.employeeId}</Typography>
                 </Box>
                 <Tooltip title="Copy ID">
-                  <IconButton onClick={() => copyToClipboard(credentials.employeeId)} color="primary">
-                    <ContentCopyIcon />
+                  <IconButton onClick={() => copyToClipboard(credentials.employeeId)} sx={{ border: '2px solid #000', borderRadius: '4px', '&:hover': { bgcolor: '#FFE17C' } }}>
+                    <ContentCopyIcon sx={{ color: '#000' }} />
                   </IconButton>
                 </Tooltip>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="caption" color="textSecondary">Temporary Password</Typography>
-                  <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>{credentials.plaintextPassword}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#666' }}>TEMPORARY PASSWORD</Typography>
+                  <Typography variant="h5" sx={{ fontFamily: 'monospace', fontWeight: 700, mt: 0.5 }}>{credentials.plaintextPassword}</Typography>
                 </Box>
                 <Tooltip title="Copy Password">
-                  <IconButton onClick={() => copyToClipboard(credentials.plaintextPassword)} color="primary">
-                    <ContentCopyIcon />
+                  <IconButton onClick={() => copyToClipboard(credentials.plaintextPassword)} sx={{ border: '2px solid #000', borderRadius: '4px', '&:hover': { bgcolor: '#FFE17C' } }}>
+                    <ContentCopyIcon sx={{ color: '#000' }} />
                   </IconButton>
                 </Tooltip>
               </Box>
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleSuccessClose} variant="contained" color="primary">
-            I have saved the credentials
+        <DialogActions sx={{ p: 2, borderTop: '2px solid #000', justifyContent: 'center' }}>
+          <Button onClick={handleSuccessClose} variant="contained" sx={{ bgcolor: '#000', color: '#fff', width: '100%', py: 1.5, fontWeight: 800 }}>
+            I HAVE SAVED THE CREDENTIALS
           </Button>
         </DialogActions>
       </Dialog>

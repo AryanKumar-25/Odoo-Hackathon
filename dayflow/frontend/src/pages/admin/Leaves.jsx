@@ -8,12 +8,11 @@ import { getLeaves, updateLeaveStatus } from '../../api/admin';
 const Leaves = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState('pending'); // 'all', 'pending', 'approved', 'rejected'
+  const [tabValue, setTabValue] = useState('pending');
 
-  // Action Dialog State
   const [actionOpen, setActionOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
-  const [actionType, setActionType] = useState(''); // 'approved' or 'rejected'
+  const [actionType, setActionType] = useState(''); 
   const [adminComment, setAdminComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -55,15 +54,12 @@ const Leaves = () => {
     
     setSubmitting(true);
     try {
-      // Optimistic update
       const targetId = selectedLeave.id;
       
       setLeaves(prev => {
         if (tabValue === 'pending') {
-          // If viewing pending, remove it from the list
           return prev.filter(l => l.id !== targetId);
         }
-        // If viewing all, update the status and comment inline
         return prev.map(l => 
           l.id === targetId 
             ? { ...l, status: actionType, adminComment } 
@@ -72,13 +68,10 @@ const Leaves = () => {
       });
 
       handleActionClose();
-
-      // Make the actual API call in the background
       await updateLeaveStatus(targetId, actionType, adminComment);
       
     } catch (err) {
       console.error('Error updating leave status', err);
-      // Revert optimistic update on failure by refetching
       fetchLeaves();
     } finally {
       setSubmitting(false);
@@ -88,39 +81,67 @@ const Leaves = () => {
   const getStatusChip = (status) => {
     switch (status) {
       case 'approved':
-        return <Chip label="Approved" color="success" size="small" />;
+        return <Chip label="APPROVED" sx={{ bgcolor: '#FFE17C', color: '#000', border: '2px solid #000' }} size="small" />;
       case 'rejected':
-        return <Chip label="Rejected" color="error" size="small" />;
+        return <Chip label="REJECTED" sx={{ bgcolor: '#171E19', color: '#fff', border: '2px solid #000' }} size="small" />;
       default:
-        return <Chip label="Pending" color="warning" size="small" />;
+        return <Chip label="PENDING" sx={{ bgcolor: '#fff', color: '#000', border: '2px solid #000', fontWeight: 800 }} size="small" />;
     }
   };
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Leave Approvals</Typography>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h2" sx={{ fontSize: '2.5rem', mb: 1 }}>LEAVE APPROVALS</Typography>
+        <Typography variant="body1" sx={{ fontWeight: 500, color: '#171E19' }}>
+          Review and manage employee time-off requests.
+        </Typography>
+      </Box>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label="Pending" value="pending" />
-          <Tab label="Approved" value="approved" />
-          <Tab label="Rejected" value="rejected" />
-          <Tab label="All Requests" value="all" />
+      <Box sx={{ borderBottom: '2px solid #000', mb: 4 }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          TabIndicatorProps={{ style: { display: 'none' } }}
+          sx={{
+            '& .MuiTab-root': {
+              border: '2px solid transparent',
+              borderBottom: 'none',
+              borderRadius: '8px 8px 0 0',
+              mr: 1,
+              px: 3,
+              opacity: 1,
+            },
+            '& .Mui-selected': {
+              bgcolor: '#fff',
+              border: '2px solid #000',
+              borderBottom: '2px solid #fff',
+              mb: '-2px',
+              color: '#000 !important',
+              zIndex: 1
+            }
+          }}
+        >
+          <Tab label="PENDING" value="pending" />
+          <Tab label="APPROVED" value="approved" />
+          <Tab label="REJECTED" value="rejected" />
+          <Tab label="ALL REQUESTS" value="all" />
         </Tabs>
       </Box>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8, p: 4, bgcolor: '#fff', border: '2px solid #000', borderRadius: '12px', boxShadow: '8px 8px 0 #000' }}>
+          <CircularProgress sx={{ color: '#000' }} />
+        </Box>
       ) : (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ bgcolor: '#fff' }}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Employee</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Balance</TableCell>
-                <TableCell>Start Date</TableCell>
-                <TableCell>End Date</TableCell>
+                <TableCell>Dates</TableCell>
                 <TableCell>Remarks</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
@@ -129,57 +150,65 @@ const Leaves = () => {
             <TableBody>
               {leaves.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    {tabValue === 'pending' 
-                      ? "No pending leave requests! You're all caught up." 
-                      : `No ${tabValue !== 'all' ? tabValue : ''} leave requests found.`}
+                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <Typography variant="h3" sx={{ mb: 2 }}>ALL CAUGHT UP</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {tabValue === 'pending' 
+                        ? "No pending leave requests! You're good to go." 
+                        : `No ${tabValue !== 'all' ? tabValue : ''} leave requests found.`}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
                 leaves.map((leave) => (
-                  <TableRow key={leave.id}>
+                  <TableRow key={leave.id} hover>
                     <TableCell>
-                      <Typography variant="body2" fontWeight="bold">{leave.employeeName}</Typography>
-                      <Typography variant="caption" color="textSecondary">{leave.employeeId}</Typography>
+                      <Typography variant="body1" fontWeight="800">{leave.employeeName}</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#666' }}>{leave.employeeId}</Typography>
                     </TableCell>
-                    <TableCell sx={{ textTransform: 'capitalize' }}>{leave.type}</TableCell>
+                    <TableCell sx={{ textTransform: 'uppercase', fontWeight: 800 }}>{leave.type}</TableCell>
                     <TableCell>
                       {leave.balance ? (
-                        <Typography variant="caption" sx={{ display: 'block', whiteSpace: 'nowrap' }}>
-                          {leave.type === 'paid' && <Box component="span" color="primary.main">Paid: {leave.balance.paidDays}</Box>}
-                          {leave.type === 'sick' && <Box component="span" color="secondary.main">Sick: {leave.balance.sickDays}</Box>}
-                          {leave.type === 'unpaid' && <Box component="span" color="text.secondary">Unpaid Used: {leave.balance.unpaidUsed}</Box>}
-                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {leave.type === 'paid' && <Chip size="small" label={`PAID: ${leave.balance.paidDays}`} sx={{ bgcolor: '#FFE17C', fontWeight: 800 }} />}
+                          {leave.type === 'sick' && <Chip size="small" label={`SICK: ${leave.balance.sickDays}`} sx={{ bgcolor: '#B7C6C2', fontWeight: 800 }} />}
+                          {leave.type === 'unpaid' && <Chip size="small" label={`UNPAID: ${leave.balance.unpaidUsed}`} sx={{ bgcolor: '#eee', fontWeight: 800 }} />}
+                        </Box>
                       ) : '-'}
                     </TableCell>
-                    <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{leave.remarks || '-'}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      {new Date(leave.startDate).toLocaleDateString()} &rarr; {new Date(leave.endDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 200 }}>
+                      <Typography variant="body2" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {leave.remarks || '-'}
+                      </Typography>
+                    </TableCell>
                     <TableCell>{getStatusChip(leave.status)}</TableCell>
                     <TableCell>
                       {leave.status === 'pending' ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button 
                             variant="contained" 
-                            color="success" 
                             size="small" 
                             onClick={() => handleActionClick(leave, 'approved')}
+                            sx={{ bgcolor: '#FFE17C', color: '#000', '&:hover': { bgcolor: '#e5ca6f' } }}
                           >
-                            Approve
+                            APPROVE
                           </Button>
                           <Button 
                             variant="outlined" 
-                            color="error" 
                             size="small" 
                             onClick={() => handleActionClick(leave, 'rejected')}
+                            sx={{ bgcolor: '#fff' }}
                           >
-                            Reject
+                            REJECT
                           </Button>
                         </Box>
                       ) : (
                         leave.adminComment && (
-                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block', maxWidth: 150 }}>
-                            Note: {leave.adminComment}
+                          <Typography variant="caption" sx={{ display: 'block', maxWidth: 150, fontWeight: 700, fontStyle: 'italic', bgcolor: '#f5f5f5', p: 1, borderRadius: '4px', border: '1px solid #000' }}>
+                            {leave.adminComment}
                           </Typography>
                         )
                       )}
@@ -192,35 +221,61 @@ const Leaves = () => {
         </TableContainer>
       )}
 
-      {/* Approve/Reject Confirmation Dialog */}
-      <Dialog open={actionOpen} onClose={handleActionClose} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ textTransform: 'capitalize', color: actionType === 'approved' ? 'success.main' : 'error.main' }}>
-          {actionType} Request
+      {/* Action Dialog */}
+      <Dialog 
+        open={actionOpen} 
+        onClose={handleActionClose} 
+        fullWidth 
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            bgcolor: '#fff'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontFamily: 'Cabinet Grotesk, system-ui, sans-serif',
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          borderBottom: '2px solid #000',
+          bgcolor: actionType === 'approved' ? '#FFE17C' : '#171E19',
+          color: actionType === 'approved' ? '#000' : '#fff'
+        }}>
+          {actionType} REQUEST
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" gutterBottom>
-            Are you sure you want to {actionType === 'approved' ? 'approve' : 'reject'} this leave request for <strong>{selectedLeave?.employeeName}</strong>?
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography variant="body1" sx={{ fontWeight: 500, mb: 3 }}>
+            You are about to <strong>{actionType === 'approved' ? 'approve' : 'reject'}</strong> this leave request for <strong>{selectedLeave?.employeeName}</strong>.
+          </Typography>
+          <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 1, textTransform: 'uppercase' }}>
+            Admin Comment (Optional)
           </Typography>
           <TextField 
             fullWidth
-            label="Admin Comment (Optional)" 
             multiline
-            rows={2}
+            rows={3}
             value={adminComment} 
             onChange={(e) => setAdminComment(e.target.value)}
-            sx={{ mt: 2 }}
             placeholder={actionType === 'approved' ? "e.g. Enjoy your time off!" : "e.g. We are short staffed this week."}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleActionClose} disabled={submitting}>Cancel</Button>
+        <DialogActions sx={{ p: 2, borderTop: '2px solid #000' }}>
+          <Button onClick={handleActionClose} disabled={submitting} sx={{ fontWeight: 800, color: '#000' }}>
+            CANCEL
+          </Button>
           <Button 
             onClick={handleActionConfirm} 
             variant="contained" 
-            color={actionType === 'approved' ? 'success' : 'error'}
             disabled={submitting}
+            sx={{ 
+              bgcolor: actionType === 'approved' ? '#FFE17C' : '#171E19',
+              color: actionType === 'approved' ? '#000' : '#fff',
+              '&:hover': {
+                bgcolor: actionType === 'approved' ? '#e5ca6f' : '#000',
+              }
+            }}
           >
-            {submitting ? 'Updating...' : `Confirm ${actionType}`}
+            {submitting ? 'UPDATING...' : `CONFIRM ${actionType.toUpperCase()}`}
           </Button>
         </DialogActions>
       </Dialog>
