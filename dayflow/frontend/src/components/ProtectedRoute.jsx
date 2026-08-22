@@ -1,19 +1,26 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const { token, user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { user } = useAuth();
+  const location = useLocation();
 
-  if (loading) return <div>Loading...</div>;
-
-  if (!token) {
-    return <Navigate to="/auth" replace />;
+  if (!user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
-    // If they don't have the required role, redirect them or show 403
-    return <div>403 Forbidden: You do not have access to this page.</div>;
+  // Enforce mandatory password change before accessing any dashboard
+  if (user.mustChangePassword && location.pathname !== '/auth/change-password') {
+    return <Navigate to="/auth/change-password" replace />;
+  }
+
+  // If role is restricted, check it
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Optionally redirect to a 'not authorized' page or their respective dashboard
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'employee') return <Navigate to="/employee" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   return children;

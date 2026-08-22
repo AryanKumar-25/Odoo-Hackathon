@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiClient from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -23,9 +24,25 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, [token, user]);
 
-  const login = (newToken, userData) => {
-    setToken(newToken);
-    setUser(userData);
+  const login = async (loginId, password) => {
+    const res = await apiClient.post('/auth/login', { loginId, password });
+    setToken(res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  };
+
+  const signup = async (companyData) => {
+    const res = await apiClient.post('/auth/signup', companyData);
+    setToken(res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    const res = await apiClient.post('/auth/change-password', { currentPassword, newPassword });
+    setToken(res.data.token);
+    setUser(res.data.user);
+    return res.data;
   };
 
   const logout = () => {
@@ -34,8 +51,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
-      {children}
+    <AuthContext.Provider value={{ user, token, login, signup, changePassword, logout, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

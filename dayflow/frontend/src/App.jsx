@@ -12,12 +12,12 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/*" element={<AuthPage />} />
           
           <Route 
             path="/employee/*" 
             element={
-              <ProtectedRoute requiredRole="employee">
+              <ProtectedRoute allowedRoles={['employee']}>
                 <EmployeeDashboard />
               </ProtectedRoute>
             } 
@@ -26,7 +26,7 @@ function App() {
           <Route 
             path="/admin/*" 
             element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute allowedRoles={['admin']}>
                 <AdminDashboard />
               </ProtectedRoute>
             } 

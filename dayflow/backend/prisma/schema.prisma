@@ -7,13 +7,27 @@ datasource db {
   url      = env("DB_URL")
 }
 
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
 model User {
-  id           Int      @id @default(autoincrement())
-  employeeId   String   @unique
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("employee") // "employee" | "admin"
+  id                 Int      @id @default(autoincrement())
+  employeeId         String   @unique
+  name               String
+  email              String   @unique
+  phone              String?
+  passwordHash       String
+  role               String   @default("employee") // "employee" | "admin"
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  
+  companyId          Int?
+  company            Company? @relation(fields: [companyId], references: [id])
 }
 
 model Attendance {
