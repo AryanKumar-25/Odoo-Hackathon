@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  employeeId   String   @unique
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("employee") // "employee" | "admin"
+}
+
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  employeeId String
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String
+}
+
+model LeaveRequest {
+  id           Int      @id @default(autoincrement())
+  employeeId   String
+  type         String
+  startDate    DateTime
+  endDate      DateTime
+  remarks      String?
+  status       String   @default("pending")
+  adminComment String?
+}
+
+model Payroll {
+  id          Int      @id @default(autoincrement())
+  employeeId  String
+  baseSalary  Float
+  allowances  Float    @default(0)
+  deductions  Float    @default(0)
+  netSalary   Float
+  lastUpdated DateTime @updatedAt
+}
